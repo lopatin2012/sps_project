@@ -1,0 +1,76 @@
+<!-- Только список событий и пагинация (без карточки и фильтров!) -->
+
+{% for event in page_obj %}
+<div style="
+    padding: 1rem;
+    border-left: 4px solid {{ event.severity_color }};
+    background: #f9fafb;
+    margin-bottom: 0.5rem;
+    border-radius: 0 6px 6px 0;
+">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <strong style="color: {{ event.severity_color }};">{{ event.title }}</strong>
+            {% if event.message %}
+            <p style="color: var(--gray); font-size: 0.875rem; margin-top: 0.25rem;">
+                {{ event.message }}
+            </p>
+            {% endif %}
+            <small style="color: var(--gray);">
+                {{ event.get_event_type_display }} |
+                {{ event.created_at|date:"d.m.Y H:i:s" }}
+                {% if event.user %} | 👤 {{ event.user.username }}{% endif %}
+                {% if event.node %} | 🔧 {{ event.node.name }}{% endif %}
+                {% if event.sensor %} | 📡 {{ event.sensor.name }}{% endif %}
+            </small>
+        </div>
+        <span class="badge badge-{{ event.severity }}">
+            {{ event.get_severity_display }}
+        </span>
+    </div>
+</div>
+{% empty %}
+<div style="
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--gray);
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 2px dashed #e5e7eb;
+">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+    <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">
+        Событий пока нет
+    </p>
+    <small>
+        Как только что-то произойдёт с линией — здесь появится запись
+    </small>
+</div>
+{% endfor %}
+
+<!-- Пагинация -->
+{% if page_obj.has_other_pages %}
+<div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;">
+    {% if page_obj.has_previous %}
+    <button
+        class="btn"
+        hx-get="{% url 'sps_dashboard:line_events' line.pk %}?page={{ page_obj.previous_page_number }}&event_type={{ event_type }}&severity={{ severity }}"
+        hx-target="#events-list">
+        ← Назад
+    </button>
+    {% endif %}
+
+    <span style="align-self: center; color: var(--gray);">
+        Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <button
+        class="btn"
+        hx-get="{% url 'sps_dashboard:line_events' line.pk %}?page={{ page_obj.next_page_number }}&event_type={{ event_type }}&severity={{ severity }}"
+        hx-target="#events-list">
+        Вперёд →
+    </button>
+    {% endif %}
+</div>
+{% endif %}

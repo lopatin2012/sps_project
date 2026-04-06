@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load sps_tags %}
+
+{% block title %}СПС - Список линий{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏭 Производственные линии</h1>
+
+    <!-- Статистика по статусам -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+        <span class="badge badge-green tooltip" data-tooltip="🟢 Работает — линии в штатном режиме">
+            🟢 {{ status_counts.running }}
+        </span>
+        <span class="badge badge-yellow tooltip" data-tooltip="🟡 Внимание — есть неактивные узлы или датчики вне диапазона">
+            🟡 {{ status_counts.warning }}
+        </span>
+        <span class="badge badge-red tooltip" data-tooltip="🔴 Проблема — критические ошибки в работе линии">
+            🔴 {{ status_counts.error }}
+        </span>
+        <span class="badge badge-orange tooltip" data-tooltip="🟠 Обслуживание — плановое или аварийное ТО">
+            🟠 {{ status_counts.maintenance }}
+        </span>
+        <span class="badge badge-gray tooltip" data-tooltip="⚪ Неактивна — линия выведена из эксплуатации">
+            ⚪ {{ status_counts.inactive }}
+        </span>
+    </div>
+</div>
+
+{% if problem_lines > 0 %}
+<div class="alert alert-warning">
+    ⚠️ <strong>Внимание!</strong> Линий в количестве "{{ problem_lines }}" требуют внимания
+</div>
+{% endif %}
+
+<div class="grid grid-3">
+    {% for line in lines %}
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">{{ line.name }}</h3>
+            {% status_badge line.get_status %}
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <p><strong>Инв. №:</strong> {{ line.inventory_number }}</p>
+            <p><strong>Производительность:</strong> {{ line.performance }} шт/час</p>
+            <p><strong>Ввод в эксплуатацию:</strong> {{ line.datetime_commissioning|date:"d.m.Y" }}</p>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <small style="color: var(--gray);">
+                🔧 Узлов: {{ line.nodes.count }} |
+                📡 Датчиков: {{ line.sensors_count }}
+            </small>
+        </div>
+
+        <a href="{% url 'sps_dashboard:line_detail' line.pk %}" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Подробнее →
+        </a>
+    </div>
+    {% empty %}
+    <div class="card" style="grid-column: 1 / -1; text-align: center;">
+        <p style="color: var(--gray);">Линии не найдены</p>
+        <a href="/admin/" class="btn btn-primary">Добавить в админке</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

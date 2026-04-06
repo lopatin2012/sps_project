@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load sps_tags %}
+
+{% block title %}СПС - {{ line.name }}{% endblock %}
+
+{% block content %}
+<!-- Хлебные крошки -->
+<nav style="margin-bottom: 1.5rem;">
+    <a href="{% url 'sps_dashboard:line_list' %}" style="color: var(--primary);">← Все линии</a>
+</nav>
+
+<!-- Заголовок -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h1 style="font-size: 1.5rem;">{{ line.name }}</h1>
+            <p style="color: var(--gray);">Инв. №: {{ line.inventory_number }}</p>
+        </div>
+        <div id="line-status-badge"
+             hx-get="{% url 'sps_dashboard:line_status' line.pk %}"
+             hx-trigger="load, every 1s"
+             hx-swap="outerHTML">
+            {% status_badge 'running' %}
+        </div>
+    </div>
+    
+    <div class="grid grid-4">
+        <div>
+            <small style="color: var(--gray);">Всего узлов</small>
+            <p style="font-size: 1.5rem; font-weight: bold;">{{ total_nodes }}</p>
+        </div>
+        <div>
+            <small style="color: var(--gray);">Активных</small>
+            <p style="font-size: 1.5rem; font-weight: bold; color: var(--success);">{{ active_nodes }}</p>
+        </div>
+        <div>
+            <small style="color: var(--gray);">Датчиков OK</small>
+            <p style="font-size: 1.5rem; font-weight: bold; color: var(--success);">{{ ok_sensors }}/{{ total_sensors }}</p>
+        </div>
+        <div>
+            <small style="color: var(--gray);">Производительность</small>
+            <p style="font-size: 1.5rem; font-weight: bold;">{{ line.performance }} шт/ч</p>
+        </div>
+    </div>
+</div>
+
+<!-- Вкладки -->
+<div x-data="{ activeTab: 'nodes' }">
+    <div class="tabs">
+        <button class="tab" :class="{ 'active': activeTab === 'nodes' }" @click="activeTab = 'nodes'">
+            🔧 Узлы и датчики
+        </button>
+        <button class="tab" :class="{ 'active': activeTab === 'parts' }" @click="activeTab = 'parts'">
+            📦 Запчасти
+        </button>
+        <button class="tab" :class="{ 'active': activeTab === 'schema' }" @click="activeTab = 'schema'">
+            📊 Схема
+        </button>
+        <button class="tab" :class="{ 'active': activeTab === 'events' }" @click="activeTab = 'events'">
+            📜 События
+        </button>
+    </div>
+    
+    <!-- Вкладка: Узлы -->
+    <div x-show="activeTab === 'nodes'">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Узлы линии</h3>
+                <input type="text" 
+                       placeholder="🔍 Поиск узла..." 
+                       hx-get="{% url 'sps_dashboard:line_nodes' line.pk %}"
+                       hx-trigger="keyup changed delay:500ms"
+                       hx-target="#nodes-table-body"
+                       style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 6px;">
+            </div>
+            
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Узел</th>
+                        <th>Статус</th>
+                        <th>Датчики</th>
+                        <th>Обслуживание</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="nodes-table-body">
+                    {% for node in nodes %}
+                    <tr>
+                        <td>
+                            <strong>{{ node.name }}</strong>
+                            <br><small style="color: var(--gray);">{{ node.get_node_type_display }}</small>
+                        </td>
+                        <td>
+                            {% if node.is_active %}
+                                <span class="badge badge-green">🟢 Активен</span>
+                            {% else %}
+                                <span class="badge badge-red">🔴 Неактивен</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ node.sensors.count }} шт.
+                            {% for sensor in node.sensors.all|slice:":3" %}
+                                {% if not sensor.is_in_range %}
+                                    <span style="color: var(--danger);">⚠️</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if node.datetime_service %}
+                                {{ node.datetime_service|date:"d.m.Y" }}
+                            {% else %}
+                                <span style="color: var(--gray);">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/admin/sps_lines/node/{{ node.pk }}/change/" class="btn" style="padding: 0.25rem 0.5rem;">
+                                ✏️
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--gray);">
+                            Узлы не найдены
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Вкладка: Запчасти -->
+    <div x-show="activeTab === 'parts'" style="display: none;">
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">⚠️ Критический ресурс</h3>
+                </div>
+                {% for installation in critical_parts %}
+                    {% if installation.needs_replacement_soon %}
+                    <div class="alert alert-warning" style="margin-bottom: 0.5rem;">
+                        <strong>{{ installation.part.name }}</strong>
+                        <br>
+                        <small>
+                            Узел: {{ installation.node.name }} | 
+                            Осталось: {{ installation.remaining_lifetime_hours }} ч.
+                        </small>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                <p style="color: var(--gray);">Нет запчастей с критическим ресурсом</p>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📦 Низкий остаток на складе</h3>
+                </div>
+                {% for stock in low_stock_parts %}
+                    {% if stock.is_low_stock %}
+                    <div class="alert alert-danger" style="margin-bottom: 0.5rem;">
+                        <strong>{{ stock.part.name }}</strong>
+                        <br>
+                        <small>
+                            На складе: {{ stock.quantity }} шт. | 
+                            Мин: {{ stock.min_stock_level }} шт.
+                        </small>
+                    </div>
+                    {% endif %}
+                {% empty %}
+                <p style="color: var(--gray);">Все запчасти в наличии</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Вкладка: Схема -->
+    <div x-show="activeTab === 'schema'" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">📊 Схема линии</h3>
+            </div>
+            <div style="height: 500px; background: #f9fafb; border: 2px dashed #e5e7eb; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                <p style="color: var(--gray);">
+                    🚧 Визуализация схемы в разработке<br>
+                    <small>Будет отображаться SVG/Canvas с узлами и соединениями</small>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Вкладка: События -->
+    <div x-show="activeTab === 'events'" style="display: none;">
+        <div
+            hx-get="{% url 'sps_dashboard:line_events' line.pk %}"
+            hx-trigger="load"
+            hx-target="this">
+            <p style="color: var(--gray); text-align: center; padding: 2rem;">
+                ⏳ Загрузка событий...
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

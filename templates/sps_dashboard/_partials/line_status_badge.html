@@ -1,0 +1,13 @@
+<!-- sps_dashboard/_partials/line_status_badge.html -->
+
+{% load sps_tags %}
+
+<div id="line-status-badge"
+     hx-get="{% url 'sps_dashboard:line_status' pk %}"
+     hx-trigger="every 1s"
+     hx-swap="outerHTML">
+    {% status_badge status %}
+    <small style="color: var(--gray); display: block; margin-top: 0.25rem;">
+        Обновлено: {{ updated_at }}
+    </small>
+</div>

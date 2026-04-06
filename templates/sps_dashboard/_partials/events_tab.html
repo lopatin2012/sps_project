@@ -1,0 +1,43 @@
+<!-- sps_dashboard/_partials/events_tab.html -->
+
+{% load sps_tags %}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📜 Журнал событий</h3>
+
+        <!-- Фильтры -->
+        <div style="display: flex; gap: 0.5rem;">
+            <select
+                hx-get="{% url 'sps_dashboard:line_events' line.pk %}"
+                hx-trigger="change"
+                hx-target="#events-list"
+                name="severity"
+                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <option value="">Все уровни</option>
+                <option value="info" {% if severity == 'info' %}selected{% endif %}>ℹ️ Информация</option>
+                <option value="success" {% if severity == 'success' %}selected{% endif %}>🟢 Нет проблем</option>
+                <option value="warning" {% if severity == 'warning' %}selected{% endif %}>⚠️ Предупреждение</option>
+                <option value="error" {% if severity == 'error' %}selected{% endif %}>🔴 Ошибка</option>
+                <option value="critical" {% if severity == 'critical' %}selected{% endif %}>🚨 Критично</option>
+            </select>
+
+            <select
+                hx-get="{% url 'sps_dashboard:line_events' line.pk %}"
+                hx-trigger="change"
+                hx-target="#events-list"
+                name="event_type"  {# ← Убедитесь, что name совпадает с view #}
+                style="padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 6px;">
+                <option value="">Все типы</option>
+                <option value="status_change" {% if event_type == 'status_change' %}selected{% endif %}>🔄 Статус</option>
+                <option value="sensor_alert" {% if event_type == 'sensor_alert' %}selected{% endif %}>📡 Датчики</option>
+                <option value="maintenance" {% if event_type == 'maintenance' %}selected{% endif %}>🔧 Обслуживание</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Контейнер для списка (обновляется через HTMX) -->
+    <div id="events-list">
+        {% include 'sps_dashboard/_partials/events_list.html' %}
+    </div>
+</div>
