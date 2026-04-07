@@ -1,6 +1,6 @@
 # sps_dashboard/views.py
 
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.views import View
 from django.http import JsonResponse
@@ -8,10 +8,13 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.db.models import F
 from django.core.paginator import Paginator
+from django.contrib import messages
 
 from sps_lines.models import Line, Node, Sensor
 from sps_events.models import Event
 from sps_parts.models import PartInstallation, SparePartStock
+
+from sps_dashboard.forms import EventCreateForm
 
 from sps_events.utils import log_status_change
 
@@ -183,34 +186,68 @@ class LineNodesView(View):
 
 class LineEventsView(View):
     """AJAX-эндпоинт. Вкладка событий линии."""
+
     def get(self, request, pk):
         line = get_object_or_404(Line, pk=pk)
 
-        # Фильтры.
+        # Фильтры
         event_type = request.GET.get('event_type', '')
         severity = request.GET.get('severity', '')
+        page = request.GET.get('page', '')
 
-        events = line.events.all().prefetch_related('node', 'sensors', 'user')
+        events = line.events.all().select_related('node', 'sensor', 'user')
 
         if event_type:
             events = events.filter(event_type=event_type)
         if severity:
             events = events.filter(severity=severity)
 
-        # Пагинация.
+        # Пагинация
         paginator = Paginator(events, 20)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
+        is_partial = request.GET.get('partial') == '1'
 
         context = {
             'line': line,
             'page_obj': page_obj,
             'event_type': event_type,
             'severity': severity,
-            'request': request
+            'request': request,
         }
 
-        if request.headers.get('HX-Request'):
+        if is_partial:
             return render(request, 'sps_dashboard/_partials/events_list.html', context)
         else:
             return render(request, 'sps_dashboard/_partials/events_tab.html', context)
+
+# TODO ----------------------- События -----------------------
+
+class EventCreateView(View):
+    """Создание события через форму."""
+    def post(self, request, line_pk):
+        line = get_object_or_404(Line, pk=line_pk)
+
+        form = EventCreateForm(request.POST, line=line)
+
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.line = line
+            event.user = request.user or None
+
+            # При выборе узла, привязываем датчик.
+            if form.cleaned_data.get('node'):
+                event.node = form.cleaned_data['node']
+            if form.cleaned_data.get('sensor'):
+                event.sensor = form.cleaned_data['sensor']
+
+            event.save()
+
+            messages.success(request, f'Событие "{event.title}" создано')
+
+            # Возврат.
+            return redirect('sps_dashboard:line_detail', pk=line_pk)
+        else:
+            # Ошибка.
+            messages.error(request, 'Проверьте правильность заполнения формы')
+            return redirect('sps_dashboard:line_detail', pk=line_pk)

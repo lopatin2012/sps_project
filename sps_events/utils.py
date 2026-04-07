@@ -1,9 +1,7 @@
 # sps_events/utils.py
 
-from django.utils import timezone
-
 from sps_events.models import Event
-from sps_events.enums import Severity, StatusType, EventType
+from helpers.enums import EnumSeverity, EnumEventType
 
 
 def log_event(
@@ -11,7 +9,7 @@ def log_event(
         event_type,
         title,
         message='',
-        severity=Severity.info.name,
+        severity=EnumSeverity.info.name,
         node=None,
         sensor=None,
         user=None,
@@ -36,7 +34,7 @@ def log_status_change(line, old_severity, new_severity, user=None):
 
     log_event(
         line=line,
-        event_type=EventType.status_change.value,
+        event_type=EnumEventType.status_change.value,
         title=f'Статус изменён: {old_severity} -> {new_severity}',
         severity=new_severity,
         user=user,
@@ -47,7 +45,7 @@ def log_sensor_alert(sensor, user=None):
     """Выход датчика за пределы диапазона."""
     log_event(
         line=sensor.node.line,
-        event_type=EventType.sensor_alert.name,
+        event_type=EnumEventType.sensor_alert.name,
         title=f'Датчик {sensor.name} вне диапазона',
         message=f'Значение: {sensor.current_value} (норма: {sensor.min_value}-{sensor.max_value})',
         node=sensor.node,

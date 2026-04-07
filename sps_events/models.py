@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from sps_lines.models import Line, Node, Sensor
 
-from sps_events.enums import Severity, SeverityColor, EventType
+from helpers.enums import EnumSeverity, EnumSeverityColor, EnumEventType
 
 
 class Event(models.Model):
@@ -13,21 +13,21 @@ class Event(models.Model):
 
     # Типы событий.
     EVENT_TYPE_CHOICES = [
-        (EventType.status_change.name, EventType.status_change.value),
-        (EventType.node_error.name, EventType.node_error.value),
-        (EventType.sensor_alert.name, EventType.sensor_alert.value),
-        (EventType.maintenance.name, EventType.maintenance.value),
-        (EventType.part_replace.name, EventType.part_replace.value),
-        (EventType.manual.name, EventType.manual.value),
-        (EventType.system.name, EventType.system.value),
+        (EnumEventType.status_change.name, EnumEventType.status_change.value),
+        (EnumEventType.node_error.name, EnumEventType.node_error.value),
+        (EnumEventType.sensor_alert.name, EnumEventType.sensor_alert.value),
+        (EnumEventType.maintenance.name, EnumEventType.maintenance.value),
+        (EnumEventType.part_replace.name, EnumEventType.part_replace.value),
+        (EnumEventType.manual.name, EnumEventType.manual.value),
+        (EnumEventType.system.name, EnumEventType.system.value),
     ]
 
     SEVERITY_CHOICES = [
-        (Severity.info.name, Severity.info.value),
-        (Severity.success.name, Severity.success.value),
-        (Severity.warning.name, Severity.warning.value),
-        (Severity.error.name, Severity.error.value),
-        (Severity.critical.name, Severity.critical.value),
+        (EnumSeverity.info.name, EnumSeverity.info.value),
+        (EnumSeverity.success.name, EnumSeverity.success.value),
+        (EnumSeverity.warning.name, EnumSeverity.warning.value),
+        (EnumSeverity.error.name, EnumSeverity.error.value),
+        (EnumSeverity.critical.name, EnumSeverity.critical.value),
     ]
 
     # Связи.
@@ -47,12 +47,12 @@ class Event(models.Model):
     # Датчик события.
     event_type = models.CharField(
         max_length=50, choices=EVENT_TYPE_CHOICES,
-        default=EventType.status_change.name,
+        default=EnumEventType.status_change.name,
         verbose_name='Тип события'
     )
     severity = models.CharField(
         max_length=50, choices=SEVERITY_CHOICES,
-        default=Severity.info.name,
+        default=EnumSeverity.info.name,
         verbose_name='Важность'
     )
     title = models.CharField(
@@ -101,10 +101,10 @@ class Event(models.Model):
     def severity_color(self):
         """Цвет для отображения."""
         colors = {
-            SeverityColor.info.name: SeverityColor.info.value,
-            SeverityColor.success.name: SeverityColor.success.value,
-            SeverityColor.warning.name: SeverityColor.warning.value,
-            SeverityColor.error.name: SeverityColor.error.value,
-            SeverityColor.critical.name: SeverityColor.critical.value,
+            EnumSeverityColor.info.name: EnumSeverityColor.info.value,
+            EnumSeverityColor.success.name: EnumSeverityColor.success.value,
+            EnumSeverityColor.warning.name: EnumSeverityColor.warning.value,
+            EnumSeverityColor.error.name: EnumSeverityColor.error.value,
+            EnumSeverityColor.critical.name: EnumSeverityColor.critical.value,
         }
-        return colors.get(self.severity, SeverityColor.info.value)
+        return colors.get(self.severity, EnumSeverityColor.info.value)

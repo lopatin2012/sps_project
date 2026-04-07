@@ -1,9 +1,9 @@
-# sps_events/enums.py
+# helpers/enums.py
 
 from enum import Enum
 
 
-class Severity(Enum):
+class EnumSeverity(Enum):
     """Важность события"""
     info = 'Информация'
     success = 'Успех'
@@ -12,7 +12,7 @@ class Severity(Enum):
     critical = 'Критично'
 
 
-class SeverityColor(Enum):
+class EnumSeverityColor(Enum):
     """Цвет события"""
     info = '#2563eb' # Синий. 'Информация'
     success = '#16a34a'  # Зелёный. 'Успех',
@@ -21,7 +21,7 @@ class SeverityColor(Enum):
     critical = '#991b1b' # Тёмно-красный. 'Критично'
 
 
-class EventType(Enum):
+class EnumEventType(Enum):
     """Тип события"""
     status_change = 'Изменение статуса'
     node_error = 'Ошибка узла'
@@ -32,7 +32,7 @@ class EventType(Enum):
     system = 'Системное'
 
 
-class StatusType(Enum):
+class EnumStatusType(Enum):
     """Тип статуса"""
     no_problem = 'Нет проблем'
     warning = 'Предупреждение'
