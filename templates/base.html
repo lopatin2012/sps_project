@@ -281,10 +281,31 @@
             <a href="{% url 'sps_dashboard:line_list' %}" class="logo">
                 СПС <small style="font-size: 0.7em; color: var(--gray);">(Статус Производственных Систем)</small>
             </a>
-            <nav>
+
+            <nav style="display: flex; align-items: center; gap: 1rem;">
                 <a href="{% url 'sps_dashboard:line_list' %}" class="btn btn-primary">
                     📊 Дашборд
                 </a>
+
+                {% if user.is_authenticated %}
+                    <!-- Пользователь авторизован -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="color: var(--gray); font-size: 0.875rem;">
+                            👤 {{ user.username }}
+                        </span>
+                        <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn" style="padding: 0.5rem; font-size: 0.875rem;">
+                                🔓 Выйти
+                            </button>
+                        </form>
+                    </div>
+                {% else %}
+                    <!-- Пользователь не авторизован -->
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn" style="padding: 0.5rem; font-size: 0.875rem;">
+                        🔐 Войти
+                    </a>
+                {% endif %}
             </nav>
         </div>
     </header>
