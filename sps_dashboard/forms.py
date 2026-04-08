@@ -55,12 +55,25 @@ class EventCreateForm(forms.ModelForm):
             'title': forms.TextInput(attrs={
                 'class': 'form-input',
                 'placeholder': 'Краткий заголовок события',
-                'required': True
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px;'
             }),
             'message': forms.Textarea(attrs={
                 'class': 'form-textarea',
                 'placeholder': 'Подробное описание (желательно)',
-                'rows': 3
+                'rows': 3,
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; resize: vertical;'
+            }),
+            'event_type': forms.Select(attrs={
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px;'
+            }),
+            'severity': forms.Select(attrs={
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px;'
+            }),
+            'node': forms.Select(attrs={
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px;'
+            }),
+            'sensor': forms.Select(attrs={
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px;'
             }),
         }
 

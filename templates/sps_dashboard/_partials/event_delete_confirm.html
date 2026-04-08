@@ -1,0 +1,32 @@
+<!-- sps_dashboard/_partials/event_delete_confirm.html -->
+
+<div class="modal-overlay" id="modal-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+">
+    <div class="card" style="width: 90%; max-width: 400px;">
+        <div class="card-header">
+            <h3 class="card-title">⚠️ Подтвердите удаление</h3>
+            <button onclick="document.getElementById('modal-overlay').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">&times;</button>
+        </div>
+
+        <div style="padding: 1rem;">
+            <p>Вы уверены, что хотите удалить событие:</p>
+            <strong style="display: block; margin: 0.5rem 0; padding: 0.5rem; background: #f9fafb; border-radius: 4px;">
+                {{ event.title }}
+            </strong>
+            <small style="color: var(--gray);">Это действие нельзя отменить.</small>
+        </div>
+
+        <form hx-post="{% url 'sps_dashboard:event_delete' event.pk %}"
+              hx-target="#events-list"
+              hx-swap="innerHTML"
+              hx-on::after-request="document.getElementById('modal-overlay')?.remove()"
+              style="padding: 0 1rem 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+            {% csrf_token %}
+            <button type="button" onclick="document.getElementById('modal-overlay').remove()" class="btn">Отмена</button>
+            <button type="submit" class="btn" style="background: var(--danger); color: white;">Удалить</button>
+        </form>
+    </div>
+</div>

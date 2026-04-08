@@ -14,6 +14,10 @@ urlpatterns = [
 
         # Создание.
     path('line/<int:line_pk>/event/create/', views.EventCreateView.as_view(), name='event_create'),
+        # Редактирование.
+    path('event/<int:event_pk>/edit/', views.EventUpdateView.as_view(), name='event_edit'),
+        # Удаление.
+    path('event/<int:event_pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
 
     # AJAX-эндпоинты для HTMX
     path('line/<int:pk>/status/', views.LineStatusView.as_view(), name='line_status'),

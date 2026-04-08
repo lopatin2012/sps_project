@@ -251,3 +251,87 @@ class EventCreateView(View):
             # Ошибка.
             messages.error(request, 'Проверьте правильность заполнения формы')
             return redirect('sps_dashboard:line_detail', pk=line_pk)
+
+class EventUpdateView(View):
+    """Редактирование события."""
+    def get(self, request, event_pk):
+        event = get_object_or_404(Event, pk=event_pk)
+        form = EventCreateForm(instance=event, line=event.line)
+        return render(
+            request,
+            'sps_dashboard/_partials/event_edit_form.html',
+            {
+                'form': form,
+                'event': event,
+            }
+        )
+
+    def post(self, request, event_pk):
+        event = get_object_or_404(Event, pk=event_pk)
+        form = EventCreateForm(request.POST, instance=event, line=event.line)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Событие обновлено')
+            return self._refresh_events_list(event.line)
+
+        return render(
+            request,
+            'sps_dashboard/_partials/event_edit_form.html',
+            {
+                'form': form,
+                'event': event,
+            }
+        )
+
+    def _refresh_events_list(self, line):
+        """Возврат обновлённого списка событий."""
+        events = line.events.all().select_related('node', 'sensor', 'user')
+        paginator = Paginator(events, 20)
+        page_obj = paginator.get_page(1)
+        return render(
+            self.request,
+            'sps_dashboard/_partials/events_list.html',
+            {
+                'line': line,
+                'page_obj': page_obj,
+                'event_type': '',
+                'severity': ''
+            }
+        )
+
+
+class EventDeleteView(View):
+    """Удалить событие."""
+    def get(self, request, event_pk):
+        event = get_object_or_404(Event, pk=event_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/event_delete_confirm.html',
+            {
+                'event': event,
+            }
+        )
+
+    def post(self, request, event_pk):
+        event = get_object_or_404(Event, pk=event_pk)
+        line = event.line
+        event.delete()
+        messages.success(request, 'Событие удалено')
+        return self._refresh_events_list(line)
+
+    def _refresh_events_list(self, line):
+        """Вспомогательный метод для возврата обновлённого списка событий."""
+        events = line.events.all().select_related('node', 'sensor', 'user')
+        paginator = Paginator(events, 20)
+        page_obj = paginator.get_page(1)
+        return render(
+            self.request,
+            'sps_dashboard/_partials/events_list.html',
+            {
+                'line': line,
+                'page_obj': page_obj,
+                'event_type': '',
+                'severity': ''
+            }
+        )

@@ -1,0 +1,101 @@
+<!-- sps_dashboard/_partials/event_edit_form.html -->
+
+<div class="modal-overlay" id="modal-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+">
+    <div class="card" style="width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto;">
+        <div class="card-header">
+            <h3 class="card-title">✏️ Редактирование события</h3>
+            <button onclick="document.getElementById('modal-overlay').remove()"
+                    style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray);">&times;</button>
+        </div>
+
+        <form hx-post="{% url 'sps_dashboard:event_edit' event.pk %}"
+              hx-target="#events-list"
+              hx-swap="innerHTML"
+              hx-on::after-request="document.getElementById('modal-overlay')?.remove()"
+              style="padding: 1rem;">
+            {% csrf_token %}
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+                <!-- Тип события -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.event_type.label }}
+                    </label>
+                    {{ form.event_type }}
+                    {% if form.event_type.errors %}
+                        <small style="color: var(--danger);">{{ form.event_type.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Важность -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.severity.label }}
+                    </label>
+                    {{ form.severity }}
+                    {% if form.severity.errors %}
+                        <small style="color: var(--danger);">{{ form.severity.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Заголовок -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.title.label }} *
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <small style="color: var(--danger);">{{ form.title.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Сообщение -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.message.label }}
+                    </label>
+                    {{ form.message }}
+                    {% if form.message.errors %}
+                        <small style="color: var(--danger);">{{ form.message.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Узел -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.node.label }}
+                    </label>
+                    {{ form.node }}
+                    {% if form.node.errors %}
+                        <small style="color: var(--danger);">{{ form.node.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <!-- Датчик -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.sensor.label }}
+                    </label>
+                    {{ form.sensor }}
+                    {% if form.sensor.errors %}
+                        <small style="color: var(--danger);">{{ form.sensor.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: flex-end;">
+                <button type="button" onclick="document.getElementById('modal-overlay').remove()"
+                        class="btn" style="background: #f3f4f6; color: #374151;">
+                    Отмена
+                </button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>

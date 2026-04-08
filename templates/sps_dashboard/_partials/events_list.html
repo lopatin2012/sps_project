@@ -8,24 +8,98 @@
     margin-bottom: 0.5rem;
     border-radius: 0 6px 6px 0;
 ">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <strong style="color: {{ event.severity_color }};">{{ event.title }}</strong>
-            {% if event.message %}
-            <p style="color: var(--gray); font-size: 0.875rem; margin-top: 0.25rem;">{{ event.message }}</p>
-            {% endif %}
-            <small style="color: var(--gray);">
-                {{ event.get_event_type_display }} |
-                {{ event.created_at|date:"d.m.Y H:i:s" }}
-                {% if event.user %} | 👤 {{ event.user.username }}{% endif %}
-                {% if event.node %} | 🔧 {{ event.node.name }}{% endif %}
-                {% if event.sensor %} | 📡 {{ event.sensor.name }}{% endif %}
-            </small>
-        </div>
-        <span class="badge badge-{{ event.severity }}">
-            {{ event.get_severity_display }}
-        </span>
+    <!-- Заголовок события (всегда сверху) -->
+    <div style="margin-bottom: 0.75rem;">
+        <strong style="font-size: 1.1rem; color: {{ event.severity_color }};">
+            {{ event.title }}
+        </strong>
     </div>
+
+    <!-- Метаданные: слева и справа -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+
+        <!-- Левая колонка: время, важность, тип, узел, датчик -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center;">
+
+            <!-- Время создания -->
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--gray); font-size: 0.875rem;">
+                🕐 {{ event.created_at|date:"d.m.Y H:i" }}
+            </span>
+
+            <!-- Важность (бейдж) -->
+            <span class="badge badge-{{ event.severity }}" style="font-size: 0.75rem;">
+                {{ event.get_severity_display }}
+            </span>
+
+            <!-- Тип события -->
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--gray); font-size: 0.875rem;">
+                📋 {{ event.get_event_type_display }}
+            </span>
+
+            <!-- Узел (если есть) -->
+            {% if event.node %}
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--gray); font-size: 0.875rem;">
+                🔧 {{ event.node.name }}
+            </span>
+            {% endif %}
+
+            <!-- Датчик (если есть) -->
+            {% if event.sensor %}
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--gray); font-size: 0.875rem;">
+                📡 {{ event.sensor.name }}
+            </span>
+            {% endif %}
+
+        </div>
+
+        <!-- Правая колонка: создатель + кнопки -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+
+            <!-- Создатель записи -->
+            {% if event.user %}
+            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--gray); font-size: 0.875rem; white-space: nowrap;">
+                👤 {{ event.user.username }}
+            </span>
+            {% endif %}
+
+            <!-- Кнопки действий (только для авторизованных) -->
+            {% if request.user.is_authenticated %}
+            <div style="display: flex; gap: 0.25rem; border-left: 1px solid #e5e7eb; padding-left: 0.75rem;">
+                <button
+                    hx-get="{% url 'sps_dashboard:event_edit' event.pk %}"
+                    hx-target="#global-modal"
+                    hx-swap="innerHTML"
+                    class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                    ✏️
+                </button>
+                <button
+                    hx-get="{% url 'sps_dashboard:event_delete' event.pk %}"
+                    hx-target="#global-modal"
+                    hx-swap="innerHTML"
+                    class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; color: var(--danger);">
+                    🗑️
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Сообщение события (отдельным блоком, если есть) -->
+    {% if event.message %}
+    <div style="
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+        font-size: 0.875rem;
+        color: #374151;
+        line-height: 1.4;
+    ">
+        {{ event.message|linebreaksbr }}
+    </div>
+    {% endif %}
 </div>
 {% empty %}
 <div style="
