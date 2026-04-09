@@ -4,6 +4,7 @@
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}СПС - Статус производственных систем{% endblock %}</title>
 
     <!-- HTMX для интерактивности -->
@@ -14,6 +15,9 @@
 
     <!-- Chart.js для графиков -->
     <script type="text/javascript" src="{% static 'js/chart.js' %}" defer></script>
+
+    <!-- Кастомный JS для всего проекта. -->
+    <script type="text/javascript" src="{% static 'js/base.js' %}" defer></script>
 
     <style>
         :root {
@@ -272,9 +276,11 @@
             visibility: visible;
         }
 
-        .modal-overlay select,
         .modal-overlay input[type="text"],
-        .modal-overlay textarea {
+        .modal-overlay select,
+        .modal-overlay textarea,
+        .modal-overlay .form-input,
+        .modal-overlay .form-select {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #e5e7eb;
@@ -284,9 +290,11 @@
             box-sizing: border-box;
         }
 
-        .modal-overlay select:focus,
         .modal-overlay input[type="text"]:focus,
-        .modal-overlay textarea:focus {
+        .modal-overlay select:focus,
+        .modal-overlay textarea:focus,
+        .modal-overlay .form-input:focus,
+        .modal-overlay .form-select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -295,6 +303,11 @@
         .modal-overlay textarea {
             resize: vertical;
             min-height: 80px;
+        }
+
+        .modal-overlay .form-checkbox {
+            width: auto;
+            margin-right: 0.25rem;
         }
     </style>
 
@@ -355,5 +368,11 @@
     </footer>
 
     {% block extra_js %}{% endblock %}
+
+<div id="toast-container"
+     style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+     display: flex; flex-direction: column; gap: 8px; pointer-events: none;">
+</div>
+
 </body>
 </html>

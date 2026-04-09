@@ -1,0 +1,136 @@
+<!-- sps_dashboard/_partials/node_form.html -->
+
+{% if form.errors %}
+<div style="padding: 0.75rem; background: #fee2e2; border: 1px solid #fecaca;
+ border-radius: 6px; color: #991b1b; margin-bottom: 1rem; font-size: 0.875rem;">
+    <strong>❌ Ошибки в форме:</strong>
+    <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+        {% for field, errors in form.errors.items %}
+            <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="modal-overlay" id="modal-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+">
+    <div class="card" style="width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <div class="card-header">
+            <h3 class="card-title">
+                {% if is_edit %}✏️ Редактирование узла{% else %}➕ Новый узел{% endif %}
+            </h3>
+            <button onclick="document.getElementById('modal-overlay').remove()"
+                    style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray);">
+                &times;
+            </button>
+        </div>
+
+        <form hx-post="{{ request.path }}"
+              hx-target="#nodes-table-body"
+              hx-swap="innerHTML"
+              style="padding: 1rem;">
+            {% csrf_token %}
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div>
+                    <label
+                            style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.node_type.label }}
+                        <span style="color:var(--danger)">
+                            *
+                        </span>
+                    </label>
+                    {{ form.node_type }}
+                    {% if form.node_type.errors %}
+                    <small style="color: var(--danger);">
+                        {{ form.node_type.errors.0 }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.name.label }}
+                        <span style="color:var(--danger)">
+                            *
+                        </span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <small style="color: var(--danger);">
+                        {{ form.name.errors.0 }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.inventory_number.label }}
+                    </label>
+                    {{ form.inventory_number }}
+                    {% if form.inventory_number.errors %}
+                    <small style="color: var(--danger);">
+                        {{ form.inventory_number.errors.0 }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    {{ form.is_active }}
+                    <label style="font-weight: 500;">{{ form.is_active.label }}</label>
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.datetime_service.label }}
+                    </label>
+                    {{ form.datetime_service }}
+                    {% if form.datetime_service.errors %}
+                    <small style="color: var(--danger);">
+                        {{ form.datetime_service.errors.0 }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">
+                        {{ form.service_interval_hours.label }}
+                    </label>
+                    {{ form.service_interval_hours }}
+                    {% if form.service_interval_hours.errors %}
+                    <small style="color: var(--danger);">
+                        {{ form.service_interval_hours.errors.0 }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 0.75rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">
+                        📍 Координаты на схеме
+                    </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                        <div>{{ form.position_x }}</div>
+                        <div>{{ form.position_y }}</div>
+                        <div>{{ form.position_z }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: flex-end;">
+                <button type="button"
+                        onclick="document.getElementById('modal-overlay').remove()"
+                        class="btn"
+                        style="background: #f3f4f6; color: #374151;">
+                    Отмена
+                </button>
+                <button type="submit"
+                        class="btn btn-primary">
+                    {% if is_edit %}Сохранить{% else %}Создать{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

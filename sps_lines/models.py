@@ -65,7 +65,7 @@ class Line(models.Model):
         elif self.nodes.filter(is_active=False).exists():
             return 'error'
 
-        if self.nodes.filter(datetime_service__gte=timezone.now() - timedelta(hours=2)).exists():
+        if self.nodes.filter(is_maintenance=True).exists():
             return 'maintenance'
 
         else:
@@ -119,7 +119,14 @@ class Node(models.Model):
         null=True,
         verbose_name='Фотография узла'
     )
-    is_active = models.BooleanField(default=True, verbose_name='Активен')
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Активен'
+    )
+    is_maintenance = models.BooleanField(
+        default=False,
+        verbose_name='Обслуживание'
+    )
     datetime_service = models.DateTimeField(
         blank=True,
         null=True,
@@ -166,18 +173,31 @@ class Node(models.Model):
 
     @property
     def hours_since_service(self):
-        """Часы с последнего обслуживания."""
-        # Здесь нужна логика подсчета рабочих часов
-        # Пока заглушка
-        return 0
+        """Расчёт часов с последнего обслуживания (с учётом таймзон)."""
+        if not self.datetime_service:
+            return None
+
+        now = timezone.now()
+        # Если дата в будущем — считаем, что прошло 0 часов
+        if self.datetime_service > now:
+            return 0.0
+
+        delta = now - self.datetime_service
+        return delta.total_seconds() / 3600  # Возвращает float (например, 4.25 часа)
 
     @property
     def service_overdue(self):
-        """Проверка, просрочено ли обслуживание."""
-        if self.service_interval_hours == 0:
+        """Просрочено ли плановое обслуживание."""
+        if not self.service_interval_hours or self.hours_since_service is None:
             return False
         return self.hours_since_service >= self.service_interval_hours
 
+    @property
+    def hours_until_next(self):
+        """Сколько часов осталось до следующего ТО (для вывода в интерфейс)."""
+        if not self.service_interval_hours or self.hours_since_service is None:
+            return None
+        return max(0, self.service_interval_hours - self.hours_since_service)
 
 class Sensor(models.Model):
     """Датчик на узле линии."""

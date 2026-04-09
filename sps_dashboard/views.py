@@ -1,5 +1,7 @@
 # sps_dashboard/views.py
 
+import base64
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.views import View
@@ -14,9 +16,10 @@ from sps_lines.models import Line, Node, Sensor
 from sps_events.models import Event
 from sps_parts.models import PartInstallation, SparePartStock
 
-from sps_dashboard.forms import EventCreateForm
+from sps_dashboard.forms import NodeForm, EventForm
 
 from sps_events.utils import log_status_change
+
 
 # TODO -----------------------  Линии -----------------------
 class LineListView(ListView):
@@ -112,6 +115,7 @@ class LineDetailView(DetailView):
 
         return context
 
+
 # TODO ----------------------- Линии (AJAX) -----------------------
 
 class LineStatusView(View):
@@ -163,8 +167,10 @@ class LineStatusView(View):
         else:
             return JsonResponse(data)
 
+
 class LineNodesView(View):
     """AJAX-эндпоинт. Таблица узлов. Для HTMX с фильтрами."""
+
     def get(self, request, pk):
         line = get_object_or_404(Line, pk=pk)
         search = request.GET.get('search', '')
@@ -176,13 +182,13 @@ class LineNodesView(View):
 
         return render(
             request,
-            'sps_dashboard/_partials/nodes_table.html',
+            'sps_dashboard/_partials/nodes_table_body.html',
             {
                 'nodes': nodes,
-                'line': line,
-                'request': request
+                'line': line
             }
         )
+
 
 class LineEventsView(View):
     """AJAX-эндпоинт. Вкладка событий линии."""
@@ -221,14 +227,213 @@ class LineEventsView(View):
         else:
             return render(request, 'sps_dashboard/_partials/events_tab.html', context)
 
+
+# TODO ----------------------- Узлы -----------------------
+
+class NodeBase:
+
+    def _refresh_nodes_list(self, request, line, message=None):
+        """Возвращает обновлённое тело таблицы узлов."""
+        nodes = line.nodes.all().prefetch_related('sensors')
+        response = render(
+            request,
+            'sps_dashboard/_partials/nodes_table_body.html',
+            {
+                'nodes': nodes,
+                'line': line
+            }
+        )
+        # Закрытие модалки.
+        response['HX-Trigger'] = 'nodeSaved'
+
+        # Кодируем сообщение в Base64 для отображения на фронте. Также JS должен обратно декодировать.
+        if message:
+            encoded = base64.b64encode(message.encode('utf-8')).decode('ascii')
+            response['HX-Toast-Message'] = encoded
+
+        return response
+
+    def _handle_form_error(self, request, template_name, context):
+        """Возвращает форму с ошибками обратно в модальное окно."""
+        response = render(request, template_name, context)
+        response['HX-Retarget'] = '#global-modal'
+        response['HX-Reswap'] = 'innerHTML'
+        return response
+
+
+class NodeCreateView(View, NodeBase):
+    """Создание узла"""
+
+    def get(self, request, line_pk):
+        line = get_object_or_404(Line, pk=line_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/node_form.html',
+            {
+                'form': NodeForm(),
+                'line': line,
+                'is_edit': False
+            }
+        )
+
+    def post(self, request, line_pk):
+        line = get_object_or_404(Line, pk=line_pk)
+        form = NodeForm(request.POST)
+
+        if form.is_valid():
+            node = form.save(commit=False)
+            node.line = line
+            node.save()
+
+            return self._refresh_nodes_list(request, line, message=f'✅ Узел "{node.name}" создан')
+
+        return self._handle_form_error(
+            request,
+            'sps_dashboard/_partials/node_form.html',
+            {
+                'form': form,
+                'line': line,
+                'is_edit': False
+            }
+        )
+
+
+class NodeUpdateView(View, NodeBase):
+    """Обновление узла."""
+
+    def get(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/node_form.html',
+            {
+                'form': NodeForm(instance=node),
+                'node': node,
+                'line': node.line,
+                'is_edit': True
+            }
+        )
+
+    def post(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        form = NodeForm(request.POST, instance=node)
+
+        if form.is_valid():
+            form.save()
+            return self._refresh_nodes_list(request, node.line, message=f'✅ Узел "{node.name}" обновлён')
+
+        return self._handle_form_error(
+            request,
+            'sps_dashboard/_partials/node_form.html',
+            {
+                'form': form,
+                'node': node,
+                'line': node.line,
+                'is_edit': True
+            }
+        )
+
+
+class NodeDeleteView(View, NodeBase):
+    """Удаление узла"""
+
+    def get(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/node_delete_confirm.html',
+            {
+                'node': node
+            }
+        )
+
+    def post(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        line = node.line
+        node_name = node.name
+        node.delete()
+        return self._refresh_nodes_list(request, line, message=f'🗑️ Узел "{node_name}" удалён')
+
+
+class NodeStartMaintenanceView(View, NodeBase):
+    """Запуск обслуживания узла."""
+
+    def post(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        if node.is_maintenance:
+            return self._refresh_nodes_list(request, node.line)
+
+        node.is_maintenance = True
+        node.save()
+
+        Event.objects.create(
+            line=node.line,
+            node=node,
+            event_type='maintenance',
+            severity='info',
+            title=f'🔧 Начато ТО: {node.name}',
+            user=request.user if request.user.is_authenticated else None
+        )
+
+        return self._refresh_nodes_list(request, node.line, message=f'🔧 ТО узла "{node.name}" начато')
+
+
+class NodeFinishMaintenanceView(View, NodeBase):
+    """Завершение обслуживания узла."""
+
+    def post(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        if not node.is_maintenance:
+            return self._refresh_nodes_list(request, node.line)
+
+        node.is_maintenance = False
+        node.datetime_service = timezone.now()  # Фиксируем время завершения
+        node.save()
+
+        Event.objects.create(
+            line=node.line,
+            node=node,
+            event_type='maintenance',
+            severity='success',
+            title=f'✅ Завершено ТО: {node.name}',
+            user=request.user if request.user.is_authenticated else None
+        )
+
+        return self._refresh_nodes_list(
+            request,
+            node.line,
+            message=f'✅ ТО узла "{node.name}" завершено, время обновлено'
+        )
+
+
 # TODO ----------------------- События -----------------------
+
+class EventBase:
+
+    def _refresh_events_list(self, request, line):
+        """Возврат обновлённого списка событий."""
+        events = line.events.all().select_related('node', 'sensor', 'user')
+        paginator = Paginator(events, 20)
+        page_obj = paginator.get_page(1)
+        return render(
+            request,
+            'sps_dashboard/_partials/events_list.html',
+            {
+                'line': line,
+                'page_obj': page_obj,
+                'event_type': '',
+                'severity': ''
+            }
+        )
+
 
 class EventCreateView(View):
     """Создание события через форму."""
+
     def post(self, request, line_pk):
         line = get_object_or_404(Line, pk=line_pk)
 
-        form = EventCreateForm(request.POST, line=line)
+        form = EventForm(request.POST, line=line)
 
         if form.is_valid():
             event = form.save(commit=False)
@@ -252,11 +457,13 @@ class EventCreateView(View):
             messages.error(request, 'Проверьте правильность заполнения формы')
             return redirect('sps_dashboard:line_detail', pk=line_pk)
 
-class EventUpdateView(View):
+
+class EventUpdateView(View, EventBase):
     """Редактирование события."""
+
     def get(self, request, event_pk):
         event = get_object_or_404(Event, pk=event_pk)
-        form = EventCreateForm(instance=event, line=event.line)
+        form = EventForm(instance=event, line=event.line)
         return render(
             request,
             'sps_dashboard/_partials/event_edit_form.html',
@@ -268,12 +475,12 @@ class EventUpdateView(View):
 
     def post(self, request, event_pk):
         event = get_object_or_404(Event, pk=event_pk)
-        form = EventCreateForm(request.POST, instance=event, line=event.line)
+        form = EventForm(request.POST, instance=event, line=event.line)
 
         if form.is_valid():
             form.save()
             messages.success(request, 'Событие обновлено')
-            return self._refresh_events_list(event.line)
+            return self._refresh_events_list(request, event.line)
 
         return render(
             request,
@@ -284,25 +491,10 @@ class EventUpdateView(View):
             }
         )
 
-    def _refresh_events_list(self, line):
-        """Возврат обновлённого списка событий."""
-        events = line.events.all().select_related('node', 'sensor', 'user')
-        paginator = Paginator(events, 20)
-        page_obj = paginator.get_page(1)
-        return render(
-            self.request,
-            'sps_dashboard/_partials/events_list.html',
-            {
-                'line': line,
-                'page_obj': page_obj,
-                'event_type': '',
-                'severity': ''
-            }
-        )
 
-
-class EventDeleteView(View):
+class EventDeleteView(View, EventBase):
     """Удалить событие."""
+
     def get(self, request, event_pk):
         event = get_object_or_404(Event, pk=event_pk)
         return render(
@@ -318,20 +510,4 @@ class EventDeleteView(View):
         line = event.line
         event.delete()
         messages.success(request, 'Событие удалено')
-        return self._refresh_events_list(line)
-
-    def _refresh_events_list(self, line):
-        """Вспомогательный метод для возврата обновлённого списка событий."""
-        events = line.events.all().select_related('node', 'sensor', 'user')
-        paginator = Paginator(events, 20)
-        page_obj = paginator.get_page(1)
-        return render(
-            self.request,
-            'sps_dashboard/_partials/events_list.html',
-            {
-                'line': line,
-                'page_obj': page_obj,
-                'event_type': '',
-                'severity': ''
-            }
-        )
+        return self._refresh_events_list(request, line)

@@ -1,0 +1,104 @@
+<!-- sps_dashboard/_partials/nodes_table_body.html -->
+
+{% for node in nodes %}
+<tr>
+    <!-- Название и тип -->
+    <td>
+        <strong>{{ node.name }}</strong>
+        <br><small style="color: var(--gray);">{{ node.get_node_type_display }}</small>
+        {% if node.inventory_number %}
+        <br><small style="color: var(--gray);">Инв: {{ node.inventory_number }}</small>
+        {% endif %}
+    </td>
+
+    <!-- Статус активности -->
+    <td>
+        {% if node.is_active %}
+            <span class="badge badge-green">🟢 Активен</span>
+        {% else %}
+            <span class="badge badge-red">🔴 Неактивен</span>
+        {% endif %}
+    </td>
+
+    <!-- Датчики -->
+    <td>
+        {{ node.sensors.count }} шт.
+        {% for sensor in node.sensors.all|slice:":3" %}
+            {% if not sensor.is_in_range %}
+                <span style="color: var(--danger);">⚠️</span>
+            {% endif %}
+        {% endfor %}
+    </td>
+
+    <!-- Обслуживание -->
+    <td>
+        {% if node.datetime_service %}
+            <div style="font-weight: 500;">{{ node.datetime_service|date:"d.m.Y H:i" }}</div>
+
+            <!-- Логика рекомендации -->
+            {% if node.service_overdue %}
+                <span class="badge badge-red" style="margin-top: 0.25rem; font-size: 0.75rem;">
+                    ⚠️ Просрочено на {{ node.hours_since_service|floatformat:1 }} ч.
+                </span>
+            {% elif node.hours_until_next and node.hours_until_next <= 2 %}
+                <span class="badge badge-orange" style="margin-top: 0.25rem; font-size: 0.75rem;">
+                    🔜 Скоро ТО (осталось ~{{ node.hours_until_next|floatformat:1 }} ч.)
+                </span>
+            {% else %}
+                <small style="color: var(--gray);">
+                    Интервал: {{ node.service_interval_hours }} ч.
+                </small>
+            {% endif %}
+        {% else %}
+            <span style="color: var(--gray);">Не обслуживался</span>
+        {% endif %}
+    </td>
+
+    <!-- 🔧 Кнопка управления ТО -->
+    <td>
+        {% if node.is_maintenance %}
+            <button hx-post="{% url 'sps_dashboard:node_maintenance_finish' node.pk %}"
+                    hx-target="#nodes-table-body"
+                    hx-swap="innerHTML"
+                    hx-confirm="Завершить ТО и зафиксировать текущее время?"
+                    class="btn"
+                    style="background: var(--success); color: white; padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                ✅ Завершить
+            </button>
+        {% else %}
+            <button hx-post="{% url 'sps_dashboard:node_maintenance_start' node.pk %}"
+                    hx-target="#nodes-table-body"
+                    hx-swap="innerHTML"
+                    class="btn"
+                    style="background: var(--warning); color: white; padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                🔧 Начать
+            </button>
+        {% endif %}
+    </td>
+
+    <!-- Действия -->
+    <td>
+        {% if request.user.is_authenticated %}
+        <div style="display: flex; gap: 0.25rem;">
+            <button
+                hx-get="{% url 'sps_dashboard:node_edit' node.pk %}"
+                hx-target="#global-modal"
+                hx-swap="innerHTML"
+                class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">✏️</button>
+
+            <button
+                hx-get="{% url 'sps_dashboard:node_delete' node.pk %}"
+                hx-target="#global-modal"
+                hx-swap="innerHTML"
+                class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; color: var(--danger);">🗑️</button>
+        </div>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" style="text-align: center; color: var(--gray); padding: 2rem;">
+        Узлы не найдены. Нажмите «➕ Добавить узел» чтобы создать первый.
+    </td>
+</tr>
+{% endfor %}

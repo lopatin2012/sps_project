@@ -19,6 +19,27 @@ urlpatterns = [
         # Удаление.
     path('event/<int:event_pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
 
+
+    # Узлы.
+
+        # Создание.
+    path('line/<int:line_pk>/node/create/', views.NodeCreateView.as_view(), name='node_create'),
+        # Редактирование.
+    path('node/<int:node_pk>/edit/', views.NodeUpdateView.as_view(), name='node_edit'),
+        # Удаление.
+    path('node/<int:node_pk>/delete/', views.NodeDeleteView.as_view(), name='node_delete'),
+    # Управление ТО узлов
+    path(
+        'node/<int:node_pk>/maintenance/start/',
+        views.NodeStartMaintenanceView.as_view(),
+        name='node_maintenance_start'
+    ),
+    path(
+        'node/<int:node_pk>/maintenance/finish/',
+        views.NodeFinishMaintenanceView.as_view(),
+        name='node_maintenance_finish'
+    ),
+
     # AJAX-эндпоинты для HTMX
     path('line/<int:pk>/status/', views.LineStatusView.as_view(), name='line_status'),
     path('line/<int:pk>/nodes/', views.LineNodesView.as_view(), name='line_nodes'),
