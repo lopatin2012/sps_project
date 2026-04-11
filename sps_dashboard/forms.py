@@ -32,7 +32,7 @@ class DateTimeLocalInput(forms.DateTimeInput):
 
 
 class NodeForm(forms.ModelForm):
-    """Форма создания/редактирования узла."""
+    """Создания/редактирования узла."""
 
     inventory_number = forms.CharField(
         required=False,
@@ -97,6 +97,96 @@ class NodeForm(forms.ModelForm):
             }),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
+
+
+class SensorForm(forms.ModelForm):
+    """Создание и редактирование датчика"""
+
+    code = forms.CharField(
+        required=False,
+        label='Код/адрес датчика',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Адрес в системе (опционально)'
+        })
+    )
+    photo = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'form-input',
+        })
+    )
+    unit_of_measurement = forms.CharField(
+        required=False,
+        label='Единица измерения',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': '°C, бар, мм/с, etc.'
+        })
+    )
+    min_value = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        label='Мин. значение',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'step': '0.01'
+        })
+    )
+    max_value = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        label='Макс. значение',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'step': '0.01'
+        })
+    )
+    current_value = forms.DecimalField(
+        required=False,
+        max_digits=10,
+        decimal_places=2,
+        label='Текущее значение',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'step': '0.01'
+        })
+    )
+
+    class Meta:
+        model = Sensor
+        fields = [
+            'sensor_type', 'name', 'code', 'photo', 'is_active',
+            'unit_of_measurement', 'min_value', 'max_value', 'current_value'
+        ]
+        widgets = {
+            'sensor_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Название датчика *',
+                'required': True
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-checkbox'
+            }),
+        }
+        labels = {
+            'sensor_type': 'Тип датчика',
+            'name': 'Название датчика',
+            'is_active': 'Активен',
+        }
+        help_texts = {
+            'unit_of_measurement': '°C, бар, мм/с и т.д.',
+            'min_value': 'Минимальное допустимое значение',
+            'max_value': 'Максимальное допустимое значение',
+        }
+
+        def __init__(self, *args, node=None, **kwargs):
+            super().__init__(*args, **kwargs)
 
 
 class EventForm(forms.ModelForm):

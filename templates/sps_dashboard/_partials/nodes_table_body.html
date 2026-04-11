@@ -22,12 +22,57 @@
 
     <!-- Датчики -->
     <td>
-        {{ node.sensors.count }} шт.
-        {% for sensor in node.sensors.all|slice:":3" %}
-            {% if not sensor.is_in_range %}
-                <span style="color: var(--danger);">⚠️</span>
+        <div style="min-width: 140px;">
+            <div style="font-weight: 500; margin-bottom: 0.25rem;">
+                {{ node.sensors.count }} шт.
+            </div>
+
+            <!-- Список датчиков (макс. 3) -->
+            {% for sensor in node.sensors.all|slice:":3" %}
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 0.25rem; padding: 0.25rem 0; border-bottom: 1px dashed #e5e7eb;">
+                <div style="flex: 1;">
+                    <span title="{% if sensor.is_active %}Активен{% else %}Отключён{% endif %}"
+                          style="color: var(--gray); {% if not sensor.is_active %}text-decoration: line-through; opacity: 0.6;{% endif %}">
+                        {{ sensor.name }}
+                    </span>
+                    {% if sensor.last_update %}
+                    <br><small style="color: var(--gray); font-size: 0.7rem;">
+                        🕐 {{ sensor.last_update|date:"d.m.Y H:i" }}
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                    {% if not sensor.is_in_range %}
+                    <span title="Вне диапазона" style="color: var(--danger);">⚠️</span>
+                    {% endif %}
+
+                    <!-- Редактировать -->
+                    <button hx-get="{% url 'sps_dashboard:sensor_edit' sensor.pk %}"
+                            hx-target="#global-modal" hx-swap="innerHTML"
+                            style="background:none;border:none;padding:0;color:var(--primary);cursor:pointer;font-size:0.75rem;">✏️</button>
+
+                    <!-- Удалить -->
+                    <button hx-get="{% url 'sps_dashboard:sensor_delete' sensor.pk %}"
+                            hx-target="#global-modal" hx-swap="innerHTML"
+                            style="background:none;border:none;padding:0;color:var(--danger);cursor:pointer;font-size:0.75rem;">🗑️</button>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if node.sensors.count > 3 %}
+            <small style="color: var(--gray); font-size: 0.75rem;">+ ещё {{ node.sensors.count|add:"-3" }}</small>
             {% endif %}
-        {% endfor %}
+
+            <!-- Кнопка добавления датчика -->
+            {% if request.user.is_authenticated %}
+            <button hx-get="{% url 'sps_dashboard:sensor_create' node.pk %}"
+                    hx-target="#global-modal" hx-swap="innerHTML"
+                    style="margin-top: 0.5rem; background: var(--primary); color: white; border: none; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.75rem; cursor: pointer;">
+                ➕ Датчик
+            </button>
+            {% endif %}
+        </div>
     </td>
 
     <!-- Обслуживание -->
@@ -38,6 +83,7 @@
             <!-- Логика рекомендации -->
             {% if node.service_overdue %}
                 <span class="badge badge-red" style="margin-top: 0.25rem; font-size: 0.75rem;">
+                    Интервал: {{ node.service_interval_hours }} ч. <br>
                     ⚠️ Просрочено на {{ node.hours_since_service|floatformat:1 }} ч.
                 </span>
             {% elif node.hours_until_next and node.hours_until_next <= 2 %}

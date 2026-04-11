@@ -10,18 +10,7 @@ urlpatterns = [
     # Детализация линии.
     path('line/<int:pk>/', views.LineDetailView.as_view(), name='line_detail'),
 
-    # События.
-
-        # Создание.
-    path('line/<int:line_pk>/event/create/', views.EventCreateView.as_view(), name='event_create'),
-        # Редактирование.
-    path('event/<int:event_pk>/edit/', views.EventUpdateView.as_view(), name='event_edit'),
-        # Удаление.
-    path('event/<int:event_pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
-
-
     # Узлы.
-
         # Создание.
     path('line/<int:line_pk>/node/create/', views.NodeCreateView.as_view(), name='node_create'),
         # Редактирование.
@@ -39,6 +28,23 @@ urlpatterns = [
         views.NodeFinishMaintenanceView.as_view(),
         name='node_maintenance_finish'
     ),
+
+    # Датчики.
+        # Создание.
+    path('node/<int:node_pk>/sensor/create/', views.SensorCreateView.as_view(), name='sensor_create'),
+        # Редактирование.
+    path('sensor/<int:sensor_pk>/edit/', views.SensorUpdateView.as_view(), name='sensor_edit'),
+        # Удаление.
+    path('sensor/<int:sensor_pk>/delete/', views.SensorDeleteView.as_view(), name='sensor_delete'),
+
+
+    # События.
+        # Создание.
+    path('line/<int:line_pk>/event/create/', views.EventCreateView.as_view(), name='event_create'),
+        # Редактирование.
+    path('event/<int:event_pk>/edit/', views.EventUpdateView.as_view(), name='event_edit'),
+        # Удаление.
+    path('event/<int:event_pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
 
     # AJAX-эндпоинты для HTMX
     path('line/<int:pk>/status/', views.LineStatusView.as_view(), name='line_status'),

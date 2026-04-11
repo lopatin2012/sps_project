@@ -16,7 +16,7 @@ from sps_lines.models import Line, Node, Sensor
 from sps_events.models import Event
 from sps_parts.models import PartInstallation, SparePartStock
 
-from sps_dashboard.forms import NodeForm, EventForm
+from sps_dashboard.forms import NodeForm, SensorForm, EventForm
 
 from sps_events.utils import log_status_change
 
@@ -403,6 +403,135 @@ class NodeFinishMaintenanceView(View, NodeBase):
             request,
             node.line,
             message=f'✅ ТО узла "{node.name}" завершено, время обновлено'
+        )
+
+
+# TODO ----------------------- Датчики -----------------------
+
+class SensorBase:
+    """Базовый миксин для операций с датчиками."""
+
+    def _refresh_nodes_list(self, request, line, message=None):
+        """Возвращает обновлённый список узлов (с датчиками)"""
+        nodes = line.nodes.all().prefetch_related('sensors')
+        response = render(
+            request,
+            'sps_dashboard/_partials/nodes_table_body.html',
+            {
+                'nodes': nodes,
+                'line': line,
+                'message': message
+            }
+        )
+        response['HX-Trigger'] = 'nodeSaved'
+        return response
+
+    def _handle_form_error(self, request, template_name, context):
+        """Возвращает форму с ошибками"""
+        response = render(request, template_name, context)
+        response['HX-Trigger'] = '#global-modal'
+        response['HX-Reswap'] = 'innerHTML'
+        return response
+
+
+class SensorCreateView(View, SensorBase):
+    """Создание датчика для узла."""
+
+    def get(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/sensor_form.html',
+            {
+                'form': SensorForm(),
+                'node': node,
+                'is_edit': False
+            }
+        )
+
+    def post(self, request, node_pk):
+        node = get_object_or_404(Node, pk=node_pk)
+        form = SensorForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            sensor = form.save(commit=False)
+            sensor.node = node
+            sensor.save()
+            return self._refresh_nodes_list(
+                request, node.line,
+                message=f'📡 Датчик "{sensor.name}" добавлен'
+            )
+
+        return self._handle_form_error(
+            request, 'sps_dashboard/_partials/sensor_form.html',
+            {
+                'form': form,
+                'node': node,
+                'is_edit': False
+            }
+        )
+
+
+class SensorUpdateView(View, SensorBase):
+    """Редактирование датчика."""
+
+    def get(self, request, sensor_pk):
+        sensor = get_object_or_404(Sensor, pk=sensor_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/sensor_form.html',
+            {
+                'form': SensorForm(instance=sensor),
+                'sensor': sensor,
+                'node': sensor.node,
+                'is_edit': True
+            }
+        )
+
+    def post(self, request, sensor_pk):
+        sensor = get_object_or_404(Sensor, pk=sensor_pk)
+        form = SensorForm(request.POST, request.FILES, instance=sensor)
+
+        if form.is_valid():
+            form.save()
+            return self._refresh_nodes_list(
+                request,
+                sensor.node.line,
+                message=f'📡 Датчик "{sensor.name}" обновлён'
+            )
+
+        return self._handle_form_error(
+            request, 'sps_dashboard/_partials/sensor_form.html',
+            {
+                'form': form,
+                'sensor': sensor,
+                'node': sensor.node,
+                'is_edit': True
+            }
+        )
+
+
+class SensorDeleteView(View, SensorBase):
+    """Удаление датчика."""
+
+    def get(self, request, sensor_pk):
+        sensor = get_object_or_404(Sensor, pk=sensor_pk)
+        return render(
+            request,
+            'sps_dashboard/_partials/sensor_delete_confirm.html',
+            {
+                'sensor': sensor
+            }
+        )
+
+    def post(self, request, sensor_pk):
+        sensor = get_object_or_404(Sensor, pk=sensor_pk)
+        node = sensor.node
+        sensor_name = sensor.name
+        sensor.delete()
+        return self._refresh_nodes_list(
+            request, node.line,
+            message=f'🗑️ Датчик "{sensor_name}" удалён'
         )
 
 

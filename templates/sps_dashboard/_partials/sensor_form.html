@@ -1,0 +1,143 @@
+<!-- sps_dashboard/_partials/sensor_form.html -->
+
+{% if form.errors %}
+<div style="padding: 0.75rem; background: #fee2e2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; margin-bottom: 1rem; font-size: 0.875rem;">
+    <strong>❌ Ошибки в форме:</strong>
+    <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+        {% for field, errors in form.errors.items %}
+            <li><strong>{{ field }}:</strong> {{ errors|join:", " }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="modal-overlay" id="modal-overlay" style="
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+">
+    <div class="card" style="width: 90%; max-width: 540px; max-height: 90vh; overflow-y: auto;">
+        <div class="card-header">
+            <h3 class="card-title">{% if is_edit %}✏️ Редактирование датчика{% else %}📡 Новый датчик{% endif %}</h3>
+            <button onclick="document.getElementById('modal-overlay').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray);">&times;</button>
+        </div>
+
+        <form hx-post="{{ request.path }}" hx-target="#nodes-table-body" hx-swap="innerHTML" style="padding: 1rem;">
+            {% csrf_token %}
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+                <!-- Тип датчика -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">{{ form.sensor_type.label }} <span style="color:var(--danger)">*</span></label>
+                    {{ form.sensor_type }}
+                    {% if form.sensor_type.errors %}<small style="color: var(--danger);">{{ form.sensor_type.errors.0 }}</small>{% endif %}
+                </div>
+
+                <!-- Название -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">{{ form.name.label }} <span style="color:var(--danger)">*</span></label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<small style="color: var(--danger);">{{ form.name.errors.0 }}</small>{% endif %}
+                </div>
+
+                <!-- Код/адрес -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">{{ form.code.label }}</label>
+                    {{ form.code }}
+                    {% if form.code.errors %}<small style="color: var(--danger);">{{ form.code.errors.0 }}</small>{% endif %}
+                </div>
+
+                <!-- Активен -->
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    {{ form.is_active }}
+                    <label style="font-weight: 500;">{{ form.is_active.label }}</label>
+                </div>
+
+                <!-- Ед. измерения + значения -->
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 0.75rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">📊 Параметры</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div>
+                            <small style="display: block; margin-bottom: 0.25rem;">{{ form.unit_of_measurement.label }}</small>
+                            {{ form.unit_of_measurement }}
+                        </div>
+                        <div>
+                            <small style="display: block; margin-bottom: 0.25rem;">{{ form.current_value.label }}</small>
+                            {{ form.current_value }}
+                        </div>
+                        <div>
+                            <small style="display: block; margin-bottom: 0.25rem;">{{ form.min_value.label }}</small>
+                            {{ form.min_value }}
+                        </div>
+                        <div>
+                            <small style="display: block; margin-bottom: 0.25rem;">{{ form.max_value.label }}</small>
+                            {{ form.max_value }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Фото (опционально) -->
+                <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-weight: 500;">{{ form.photo.label }}</label>
+                    {{ form.photo }}
+                    {% if form.photo.errors %}<small style="color: var(--danger);">{{ form.photo.errors.0 }}</small>{% endif %}
+                </div>
+
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem; justify-content: flex-end;">
+                <button type="button" onclick="document.getElementById('modal-overlay').remove()" class="btn" style="background: #f3f4f6; color: #374151;">Отмена</button>
+                <button type="submit" class="btn btn-primary">{% if is_edit %}Сохранить{% else %}Создать{% endif %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .modal-overlay .form-input,
+    .modal-overlay .form-select {
+        width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb;
+        border-radius: 6px; font-size: 1rem; background: white; box-sizing: border-box;
+    }
+
+    .modal-overlay .form-checkbox {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+
+    .modal-overlay .form-checkbox:hover {
+        border-color: var(--primary);
+    }
+
+    .modal-overlay .form-checkbox:checked {
+        background-color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .modal-overlay .form-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 0.85rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .modal-overlay .form-checkbox:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+    }
+</style>
